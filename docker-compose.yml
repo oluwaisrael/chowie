@@ -1,0 +1,66 @@
+name: oriade
+services:
+  db:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: oriade
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-oriade}
+      POSTGRES_DB: oriade
+    ports: ["127.0.0.1:5432:5432"]
+    volumes: ["postgres:/var/lib/postgresql"]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U oriade"]
+      interval: 5s
+      retries: 10
+  redis:
+    image: redis:7-alpine
+    ports: ["127.0.0.1:6379:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 10
+  migrate:
+    build:
+      context: .
+      dockerfile: infra/docker/api.Dockerfile
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://oriade:${POSTGRES_PASSWORD:-oriade}@db:5432/oriade
+      REDIS_URL: redis://redis:6379/0
+    command: ["uv", "run", "--no-sync", "alembic", "upgrade", "head"]
+    depends_on:
+      db: {condition: service_healthy}
+  api:
+    build:
+      context: .
+      dockerfile: infra/docker/api.Dockerfile
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://oriade:${POSTGRES_PASSWORD:-oriade}@db:5432/oriade
+      REDIS_URL: redis://redis:6379/0
+    ports: ["127.0.0.1:8000:8000"]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      redis: {condition: service_healthy}
+  worker:
+    build:
+      context: .
+      dockerfile: infra/docker/api.Dockerfile
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql+psycopg://oriade:${POSTGRES_PASSWORD:-oriade}@db:5432/oriade
+      REDIS_URL: redis://redis:6379/0
+    command: ["uv", "run", "--no-sync", "celery", "-A", "oriade.workers.tasks", "worker", "--beat", "--loglevel=INFO", "--schedule=/tmp/oriade-beat", "--concurrency=2"]
+    depends_on:
+      migrate: {condition: service_completed_successfully}
+      redis: {condition: service_healthy}
+  web:
+    build:
+      context: .
+      dockerfile: infra/docker/web.Dockerfile
+      args:
+        API_INTERNAL_URL: http://api:8000
+    ports: ["127.0.0.1:3000:3000"]
+    depends_on: [api]
+volumes:
+  postgres:

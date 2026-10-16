@@ -187,3 +187,131 @@ def test_staff_revocation_and_address_ownership(client):
         ).status_code
         == 401
     )
+
+
+def test_password_reset_one_time_and_session_revocation(client):
+    from datetime import timedelta
+    from oriade.shared.models import PasswordReset, User, now
+    from oriade.modules.identity.service import digest
+
+    sign_in(client, "customer")
+    token = secrets.token_urlsafe(32)
+    with SessionLocal() as db:
+        user = db.scalar(select(User).where(User.email == "customer@example.com"))
+        db.add(
+            PasswordReset(user_id=user.id, token_hash=digest(token), expires_at=now() + timedelta(minutes=30))
+        )
+        db.commit()
+    result = client.post("/auth/reset-password", json={"token": token, "password": "new-unique-password"})
+    assert result.status_code == 200
+    assert client.get("/auth/me").status_code == 401
+    assert (
+        client.post(
+            "/auth/reset-password", json={"token": token, "password": "another-long-password"}
+        ).status_code
+        == 400
+    )
+    assert (
+        client.post(
+            "/auth/login", json={"email": "customer@example.com", "password": "test-password-long"}
+        ).status_code
+        == 401
+    )
+    assert (
+        client.post(
+            "/auth/login", json={"email": "customer@example.com", "password": "new-unique-password"}
+        ).status_code
+        == 200
+    )
+
+
+def test_pickup_and_cancel_stock_once(client):
+    from uuid import UUID
+
+    payload, headers, item, _ = checkout_data(client)
+    payload.update(fulfillment="pickup", zone_id=None, address="")
+    with SessionLocal() as db:
+        db.get(Inventory, UUID(item["id"])).remaining = 5
+        db.commit()
+    order = client.post("/orders", json=payload, headers=headers).json()
+    assert order["delivery_fee"] == 0
+    sign_in(client, "operator")
+    assert (
+        client.patch(
+            "/orders/" + order["reference"] + "/status", json={"status": "CANCELLED", "version": 1}
+        ).status_code
+        == 200
+    )
+    assert (
+        client.patch(
+            "/orders/" + order["reference"] + "/status", json={"status": "CANCELLED", "version": 2}
+        ).status_code
+        == 409
+    )
+    with SessionLocal() as db:
+        assert db.get(Inventory, UUID(item["id"])).remaining == 5
+
+
+def test_concurrent_stock_cannot_oversell(client):
+    from uuid import UUID
+
+    payload, _, item, _ = checkout_data(client)
+    payload["items"][0]["quantity"] = 1
+    with SessionLocal() as db:
+        db.get(Inventory, UUID(item["id"])).remaining = 1
+        db.commit()
+
+    def submit(_):
+        with TestClient(
+            app,
+            headers={
+                "Origin": "http://testserver",
+                "Idempotency-Key": str(uuid4()),
+                "X-Order-Token": secrets.token_urlsafe(32),
+            },
+        ) as other:
+            return other.post("/orders", json=payload).status_code
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        assert sorted(pool.map(submit, range(2))) == [201, 409]
+
+
+def test_catalog_crud_and_foreign_modifier_rejection(client):
+    payload, headers, item, catalog = checkout_data(client)
+    other = next(i for i in catalog["items"] if i["id"] != item["id"] and i["modifiers"])
+    payload["items"][0]["modifiers"] = [other["modifiers"][0]["id"]]
+    assert client.post("/orders", json=payload, headers=headers).status_code == 409
+    sign_in(client, "operator")
+    data = {
+        k: item[k]
+        for k in [
+            "name",
+            "description",
+            "price",
+            "image",
+            "available",
+            "featured",
+            "category_id",
+            "location_id",
+            "modifiers",
+        ]
+    }
+    data["price"] = 123450
+    assert client.put("/admin/items/" + item["id"], json=data).status_code == 200
+    updated = next(i for i in client.get("/catalog").json()["items"] if i["id"] == item["id"])
+    assert updated["price"] == 123450
+    data["image"] = "javascript:alert(1)"
+    assert client.put("/admin/items/" + item["id"], json=data).status_code == 422
+
+
+def test_auth_rate_limit_and_cookie_flags(client):
+    result = client.post(
+        "/auth/login", json={"email": "customer@example.com", "password": "test-password-long"}
+    )
+    cookie = result.headers["set-cookie"].lower()
+    assert "httponly" in cookie and "samesite=lax" in cookie
+    for _ in range(15):
+        result = client.post(
+            "/auth/login", json={"email": "customer@example.com", "password": "wrong-password"}
+        )
+    assert result.status_code == 429

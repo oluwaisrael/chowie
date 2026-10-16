@@ -1,0 +1,6 @@
+packages:
+  - apps/storefront
+  - packages/*
+allowBuilds:
+  esbuild: true
+  unrs-resolver: true

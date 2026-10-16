@@ -1,15 +1,13 @@
 import asyncio
 import json
-import secrets
-from datetime import timedelta
 from uuid import UUID, uuid4
 from fastapi import FastAPI, Depends, Request, Response, UploadFile
 from fastapi.responses import JSONResponse, StreamingResponse
-from sqlalchemy import select, delete, text
+from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError
 from oriade.shared.config import settings
 from oriade.shared.db import db_session, SessionLocal
-from oriade.shared.models import User, Session, PasswordReset, Category, Location, Zone, Audit, now
+from oriade.shared.models import User, Category, Location, Zone, Audit
 from oriade.shared.errors import Problem
 from oriade.shared import schemas as s
 from oriade.shared.security import principal, require, rate_limit
@@ -19,7 +17,6 @@ from oriade.modules.ordering import service as ordering
 from oriade.modules.customers import service as customers
 from oriade.modules.operations import service as operations
 from oriade.modules.reporting.service import reports
-from oriade.modules.notifications.email import send_reset
 
 app = FastAPI(title="Óriade API", version="0.1.0")
 if settings().sentry_dsn:
@@ -100,12 +97,7 @@ def me(request: Request, db=Depends(db_session)):
 
 @app.post("/auth/logout")
 def logout(request: Request, response: Response, user=Depends(require()), db=Depends(db_session)):
-    db.execute(
-        delete(Session).where(
-            Session.token_hash == identity.digest(request.cookies.get("oriade_session", ""))
-        )
-    )
-    db.commit()
+    identity.logout(db, request.cookies.get("oriade_session", ""))
     response.delete_cookie("oriade_session", path="/")
     return {"ok": True}
 
@@ -113,23 +105,7 @@ def logout(request: Request, response: Response, user=Depends(require()), db=Dep
 @app.post("/auth/forgot-password")
 def forgot(data: s.ResetRequest, request: Request, db=Depends(db_session)):
     rate_limit(request, "reset", 5)
-    if not settings().smtp_host:
-        raise Problem("Password reset email is not configured. Please contact the restaurant.", 503)
-    user = db.scalar(select(User).where(User.email == str(data.email).lower()))
-    if user:
-        token = secrets.token_urlsafe(32)
-        db.add(
-            PasswordReset(
-                user_id=user.id, token_hash=identity.digest(token), expires_at=now() + timedelta(minutes=30)
-            )
-        )
-        db.commit()
-        try:
-            send_reset(user.email, token)
-        except Exception:
-            # A delivery failure must not reveal whether an account exists.
-            __import__("logging").getLogger("oriade").error("Password reset email delivery failed")
-    return {"message": "If an account exists, a reset link will be emailed to you."}
+    return identity.request_reset(db, str(data.email))
 
 
 @app.post("/auth/reset-password")
