@@ -6,7 +6,7 @@ import type {User} from '@/lib/types';
 const AuthContext=createContext<{user:User|null;loading:boolean;refresh:()=>void}>({user:null,loading:true,refresh:()=>{}});
 function Auth({children}:{children:React.ReactNode}) {
   const query=useQuery({queryKey:['me'],queryFn:()=>api<{user:User;csrf:string}>('/auth/me'),retry:false,staleTime:60_000});
-  useEffect(()=>{setCsrf(query.data?.csrf||'');},[query.data]);
+  useEffect(()=>{if(query.data?.csrf)setCsrf(query.data.csrf);},[query.data]);
   return <AuthContext.Provider value={{user:query.data?.user||null,loading:query.isLoading,refresh:()=>{void query.refetch();}}}>{children}</AuthContext.Provider>;
 }
 export const useAuth=()=>useContext(AuthContext);
