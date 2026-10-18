@@ -18,7 +18,9 @@ Next.js 16, React 19, TypeScript, FastAPI, SQLAlchemy, Alembic, PostgreSQL, Redi
 
 The API is a modular monolith. The storefront reads catalog data from FastAPI, while checkout totals and order state are authoritative in PostgreSQL.
 
-## Run locally
+## How to run locally
+
+Prerequisites: Node.js 20+, pnpm, Python 3.12+, `uv`, Docker Desktop, and a running Docker daemon.
 
 1. Copy `.env.example` to `.env` and adjust values only if your local services use different ports.
 2. Start PostgreSQL and Redis, or use the supplied Compose file:
@@ -27,16 +29,38 @@ The API is a modular monolith. The storefront reads catalog data from FastAPI, w
    docker compose up -d db redis
    ```
 
-3. Install dependencies and migrate:
+3. Install dependencies and prepare the API database:
 
    ```bash
    pnpm install --frozen-lockfile
-   cd apps/api && uv sync --frozen && uv run alembic upgrade head && uv run python -m oriade.cli seed
+   cd apps/api
+   uv sync --frozen
+   uv run alembic upgrade head
+   uv run python -m oriade.cli seed
    cd ../..
+   ```
+
+4. Start the API in Terminal 1:
+
+   ```bash
+   make api
+   ```
+
+5. Start the storefront in Terminal 2:
+
+   ```bash
    pnpm dev
    ```
 
-The web app runs at `http://localhost:3000`; the API runs at `http://localhost:8000` when started with `make api`.
+6. Inspect the application at `http://localhost:3000`. The API is available at `http://localhost:8000/health`.
+
+To run the full stack with containers instead, use:
+
+```bash
+docker compose up --build
+```
+
+Then open `http://localhost:3000`.
 
 Important environment variables are `DATABASE_URL`, `REDIS_URL`, `APP_ORIGIN`, `API_INTERNAL_URL`, `ENVIRONMENT`, `WHATSAPP_NUMBER`, and `SESSION_DAYS`. Never commit `.env` or credentials.
 
