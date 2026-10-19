@@ -3,8 +3,9 @@ FROM python:3.13-slim
 COPY --from=uv /uv /usr/local/bin/uv
 WORKDIR /app
 COPY apps/api/pyproject.toml apps/api/uv.lock ./
+RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev --no-install-project
 COPY apps/api/src ./src
-RUN uv sync --frozen --no-dev
+ENV PYTHONPATH=/app/src
 COPY apps/api/alembic.ini ./
 COPY apps/api/migrations ./migrations
 RUN useradd --system --uid 10001 oriade
