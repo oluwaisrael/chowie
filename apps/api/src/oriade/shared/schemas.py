@@ -41,10 +41,12 @@ class Line(Input):
 
 class Checkout(Input):
     name: str = Field(min_length=2, max_length=100)
+    email: EmailStr | None = None
     phone: str = Field(pattern=r"^\+?[0-9 ()-]{7,25}$")
     location_id: UUID
     zone_id: UUID | None = None
     fulfillment: Literal["delivery", "pickup"]
+    payment_method: Literal["paystack", "pay_on_delivery"] = "paystack"
     address: str = Field(default="", max_length=500)
     instructions: str = Field(default="", max_length=500)
     items: list[Line] = Field(min_length=1, max_length=30)
@@ -53,6 +55,23 @@ class Checkout(Input):
 class StatusChange(Input):
     status: Literal["CONFIRMED", "PREPARING", "READY", "OUT_FOR_DELIVERY", "COMPLETED", "CANCELLED"]
     version: int = Field(ge=1)
+
+
+class ReviewInput(Input):
+    rating: int = Field(ge=1, le=5)
+    message: str = Field(min_length=5, max_length=1000)
+
+
+class ReviewVisibility(Input):
+    published: bool
+
+
+class PaymentVerification(Input):
+    reference: str = Field(min_length=8, max_length=100)
+
+
+class PaymentInitialization(Input):
+    email: EmailStr | None = None
 
 
 class ModifierInput(Input):

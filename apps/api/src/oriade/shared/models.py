@@ -110,10 +110,12 @@ class Order(Entity, Base):
     request_hash: Mapped[str] = mapped_column(String(64))
     access_hash: Mapped[str] = mapped_column(String(64))
     name: Mapped[str] = mapped_column(String(100))
+    email: Mapped[str | None] = mapped_column(String(254), nullable=True)
     phone: Mapped[str] = mapped_column(String(30))
     address: Mapped[str] = mapped_column(String(500), default="")
     instructions: Mapped[str] = mapped_column(String(500), default="")
     fulfillment: Mapped[str] = mapped_column(String(20))
+    payment_method: Mapped[str] = mapped_column(String(24), default="paystack", server_default="paystack")
     status: Mapped[str] = mapped_column(String(30), default="PENDING_CONFIRMATION", index=True)
     subtotal: Mapped[int] = mapped_column(BigInteger)
     delivery_fee: Mapped[int] = mapped_column(BigInteger)
@@ -122,6 +124,7 @@ class Order(Entity, Base):
     __table_args__ = (
         CheckConstraint("subtotal >= 0 AND delivery_fee >= 0 AND total = subtotal + delivery_fee"),
         CheckConstraint("fulfillment IN ('delivery','pickup')"),
+        CheckConstraint("payment_method IN ('paystack','pay_on_delivery')"),
         CheckConstraint(
             "status IN ('PENDING_CONFIRMATION','CONFIRMED','PREPARING','READY','OUT_FOR_DELIVERY','COMPLETED','CANCELLED')"
         ),
@@ -150,6 +153,28 @@ class Handoff(Entity, Base):
     __tablename__ = "whatsapp_handoffs"
     order_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("orders.id"), unique=True)
     initiated_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+
+class Review(Entity, Base):
+    __tablename__ = "reviews"
+    order_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("orders.id"), unique=True)
+    user_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"), index=True)
+    customer_name: Mapped[str] = mapped_column(String(100))
+    rating: Mapped[int]
+    message: Mapped[str] = mapped_column(String(1000))
+    published: Mapped[bool] = mapped_column(default=False, index=True)
+    __table_args__ = (CheckConstraint("rating BETWEEN 1 AND 5"),)
+
+
+class Payment(Entity, Base):
+    __tablename__ = "payments"
+    order_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("orders.id"), index=True)
+    provider_reference: Mapped[str] = mapped_column(String(100), unique=True)
+    authorization_url: Mapped[str] = mapped_column(String(500))
+    amount: Mapped[int] = mapped_column(BigInteger)
+    currency: Mapped[str] = mapped_column(String(3), default="NGN")
+    status: Mapped[str] = mapped_column(String(20), default="pending", index=True)
+    paid_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class Outbox(Entity, Base):

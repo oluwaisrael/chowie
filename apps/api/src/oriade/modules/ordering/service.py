@@ -47,10 +47,12 @@ def create_order(db, request, key, access, user):
         request_hash=request_hash,
         access_hash=digest(access),
         name=request.name,
+        email=str(request.email) if request.email else (user.email if user else None),
         phone=request.phone,
         address=address,
         instructions=request.instructions,
         fulfillment=request.fulfillment,
+        payment_method=request.payment_method,
         subtotal=subtotal,
         delivery_fee=fee,
         total=subtotal + fee,
@@ -101,6 +103,9 @@ def snapshot(db, order, kitchen=False, items=None, history=None):
             {
                 "name": order.name,
                 "phone": order.phone,
+                "email": order.email,
+                "payment_status": _payment_status(db, order),
+                "payment_method": order.payment_method,
                 "address": order.address,
                 "subtotal": order.subtotal,
                 "delivery_fee": order.delivery_fee,
@@ -109,6 +114,17 @@ def snapshot(db, order, kitchen=False, items=None, history=None):
             }
         )
     return result
+
+
+def _payment_status(db, order):
+    if order.payment_method == "pay_on_delivery":
+        return "pay_on_delivery"
+    from oriade.shared.models import Payment
+
+    payment = db.scalar(
+        select(Payment).where(Payment.order_id == order.id).order_by(Payment.created_at.desc())
+    )
+    return payment.status if payment else "unpaid"
 
 
 def initiate_handoff(db, order):
@@ -141,6 +157,13 @@ def transition(db, reference, actor, status, version):
     record(db, actor, "order.status", order.reference, {"status": status})
     event(db, order, "Order" + status.title().replace("_", ""))
     db.commit()
+    try:
+        from oriade.modules.notifications.orders import send_order_email
+
+        send_order_email(order)
+    except Exception:
+        # A notification failure must never undo a committed kitchen/order update.
+        pass
     return snapshot(db, order, actor.role == "kitchen")
 
 

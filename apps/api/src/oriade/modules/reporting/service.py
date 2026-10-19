@@ -1,5 +1,5 @@
 from sqlalchemy import select, func, case
-from oriade.shared.models import Order, OrderItem, StatusHistory, MenuItem, Category
+from oriade.shared.models import Order, OrderItem, StatusHistory, MenuItem, Category, Payment
 
 
 def reports(db):
@@ -11,6 +11,9 @@ def reports(db):
         select(func.coalesce(func.sum(Order.total), 0)).where(
             Order.status.in_(["CONFIRMED", "PREPARING", "READY", "OUT_FOR_DELIVERY", "COMPLETED"])
         )
+    )
+    collected = db.scalar(
+        select(func.coalesce(func.sum(Payment.amount), 0)).where(Payment.status == "success")
     )
     popular = db.execute(
         select(OrderItem.name, func.sum(OrderItem.quantity))
@@ -58,5 +61,5 @@ def reports(db):
         "daily": [{"date": str(d), "orders": c} for d, c in daily],
         "categories": [{"name": n, "quantity": int(q)} for n, q in categories],
         "average_preparation_minutes": float(preparation) if preparation else None,
-        "collected_revenue": None,
+        "collected_revenue": int(collected),
     }

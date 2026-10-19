@@ -9,6 +9,10 @@ class Settings(BaseSettings):
     app_origin: str = "http://localhost:3000"
     environment: str = "development"
     whatsapp_number: str = "2348066514361"
+    paystack_secret_key: str = ""
+    paystack_currency: str = "NGN"
+    resend_api_key: str = ""
+    order_email_from: str = ""
     session_days: int = 7
     sentry_dsn: str = ""
     s3_bucket: str = ""

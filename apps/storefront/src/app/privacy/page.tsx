@@ -1,2 +1,46 @@
-export const metadata={title:'Privacy'};
-export default function Page(){return <article className="section privacy"><span className="eyebrow">YOUR DETAILS, HANDLED WITH CARE</span><h1>Privacy.</h1><p>Óriade uses your name, contact details, delivery address, and order selections to arrange and fulfil your order. Staff access is restricted by role; kitchen staff receive preparation details without customer contact information.</p><h2>Ordering through WhatsApp</h2><p>Continuing to WhatsApp shares the order summary with WhatsApp when you open the link, and with the restaurant when you send the message. WhatsApp’s own privacy terms apply to its service. Opening the link does not confirm delivery of a message or confirm your order.</p><h2>Browser storage</h2><p>Your shopping bag is stored on this device. A secure, HTTP-only session cookie keeps you signed in. Guest order access is held in the browser tab’s session storage; clearing it can remove your access. No advertising trackers are intentionally included.</p><h2>Your information</h2><p>Contact the restaurant at +234 806 651 4361 to request access to, correction of, or deletion of your information. Some order and audit records may need to be retained for operational obligations.</p><p className="notice">Pre-launch notice: the restaurant must approve its legal identity, retention periods, contact process, and this privacy notice before accepting public orders.</p></article>}
+export const metadata = { title: "Privacy" };
+export default function Page() {
+  return (
+    <article className="section privacy">
+      <span className="eyebrow">YOUR DETAILS, HANDLED WITH CARE</span>
+      <h1>Privacy.</h1>
+      <p>
+        Óriade uses your name, email, contact details, delivery address, and
+        order selections to arrange and fulfil your order and send payment
+        receipts. Staff access is restricted by role; kitchen staff receive
+        preparation details without customer contact information.
+      </p>
+      <h2>Online payments</h2>
+      <p>
+        Online payments are processed by Paystack. Óriade does not receive or
+        store your full card details. Paystack’s privacy terms apply to payment
+        processing.
+      </p>
+      <h2>Ordering through WhatsApp</h2>
+      <p>
+        Continuing to WhatsApp shares the order summary with WhatsApp when you
+        open the link, and with the restaurant when you send the message.
+        WhatsApp’s own privacy terms apply to its service. Opening the link does
+        not confirm delivery of a message or confirm your order.
+      </p>
+      <h2>Browser storage</h2>
+      <p>
+        Your shopping bag is stored on this device. A secure, HTTP-only session
+        cookie keeps you signed in. Guest order access is held in the browser
+        tab’s session storage; clearing it can remove your access. No
+        advertising trackers are intentionally included.
+      </p>
+      <h2>Your information</h2>
+      <p>
+        Contact the restaurant at +234 806 651 4361 to request access to,
+        correction of, or deletion of your information. Some order and audit
+        records may need to be retained for operational obligations.
+      </p>
+      <p className="notice">
+        Pre-launch notice: the restaurant must approve its legal identity,
+        retention periods, contact process, and this privacy notice before
+        accepting public orders.
+      </p>
+    </article>
+  );
+}

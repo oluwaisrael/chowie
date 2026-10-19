@@ -62,7 +62,11 @@ docker compose up --build
 
 Then open `http://localhost:3000`.
 
-Important environment variables are `DATABASE_URL`, `REDIS_URL`, `APP_ORIGIN`, `API_INTERNAL_URL`, `ENVIRONMENT`, `WHATSAPP_NUMBER`, and `SESSION_DAYS`. Never commit `.env` or credentials.
+The sample seed now adds Nigerian and international menu examples and all 20 Lagos LGAs. It can be rerun safely to add missing demo dishes/areas; the sample delivery fees and prices are illustrative and must be reviewed in Operations → Menu and Settings before taking real orders. For an already-running local database, rerun the seed from `apps/api` after migrations.
+
+For Paystack, create an account and find test credentials in the Paystack Dashboard under Settings → API Keys & Webhooks. Put the **test secret key** (`sk_test_…`) in the root `.env` as `PAYSTACK_SECRET_KEY`; never put a secret key in browser code or commit it. Use live keys only after your Paystack account is approved and the business is ready to accept real payments. Configure the Paystack webhook URL as `/payments/paystack/webhook` on the API host. See [Paystack authentication](https://paystack.com/docs/api/authentication/) and [transaction API](https://paystack.com/docs/api/transaction/).
+
+Order status updates and payment confirmations can be sent using [Resend](https://resend.com/): create an API key in its dashboard and set `RESEND_API_KEY` and `ORDER_EMAIL_FROM` in `.env`. For production, verify a domain in Resend and use a sender on that domain. Without those values, orders still work; automatic emails are skipped and staff's “Resend order email” action explains that email is not configured. Customer order tracking also offers a WhatsApp handoff and pay-on-delivery orders do not start a Paystack charge.
 
 ## Checks
 
@@ -83,3 +87,5 @@ The API persists an order in `PENDING_CONFIRMATION`, builds a URL-encoded messag
 ## Delivery
 
 The repository is ready for container deployment with `docker-compose.yml` and the API/web Dockerfiles. No hosted deployment URL is claimed by this repository.
+
+The seeded Lagos delivery areas are Agege, Ajeromi-Ifelodun, Alimosho, Amuwo-Odofin, Apapa, Badagry, Epe, Eti-Osa, Ibeju-Lekki, Ifako-Ijaiye, Ikeja, Ikorodu, Kosofe, Lagos Island, Lagos Mainland, Mushin, Ojo, Oshodi-Isolo, Shomolu and Surulere. Coverage and delivery fees are sample settings, not a promise that delivery is available throughout each LGA. Adjust or deactivate zones in Operations → Settings.

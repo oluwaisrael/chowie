@@ -10,28 +10,49 @@ from oriade.modules.identity.service import hasher
 
 def seed():
     with SessionLocal() as db:
-        if db.scalar(select(Location)):
-            print("Catalog already exists; no data changed.")
+        location = db.scalar(select(Location).where(Location.name == "Óriade · Sample kitchen"))
+        if not location and db.scalar(select(Location)):
+            print("A non-sample catalog already exists; no demo data changed.")
             return
-        location = Location(
-            name="Óriade · Sample kitchen",
-            address="Sample pickup location — confirm the real address with the restaurant",
-        )
-        db.add(location)
-        db.flush()
+        if not location:
+            location = Location(
+                name="Óriade · Sample kitchen",
+                address="Sample pickup location — confirm the real address with the restaurant",
+            )
+            db.add(location)
+            db.flush()
         categories = {}
         for name, slug in [
             ("Rice & classics", "rice-classics"),
             ("Soups & swallows", "soups-swallows"),
             ("Sides & small chops", "sides"),
             ("Drinks", "drinks"),
+            ("Nigerian favourites", "nigerian-favourites"),
+            ("International favourites", "international-favourites"),
+            ("Breakfast & brunch", "breakfast-brunch"),
         ]:
-            c = Category(name=name, slug=slug)
-            db.add(c)
-            db.flush()
+            c = db.scalar(select(Category).where(Category.slug == slug))
+            if not c:
+                c = Category(name=name, slug=slug)
+                db.add(c)
+                db.flush()
             categories[slug] = c.id
-        for name, fee in [("Sample zone · nearby", 150000), ("Sample zone · extended", 250000)]:
-            db.add(Zone(name=name, fee=fee, location_id=location.id))
+        # The flat demo fee is intentionally illustrative; operators must confirm it.
+        lgas = [
+            "Agege", "Ajeromi-Ifelodun", "Alimosho", "Amuwo-Odofin", "Apapa",
+            "Badagry", "Epe", "Eti-Osa", "Ibeju-Lekki", "Ifako-Ijaiye", "Ikeja",
+            "Ikorodu", "Kosofe", "Lagos Island", "Lagos Mainland", "Mushin", "Ojo",
+            "Oshodi-Isolo", "Shomolu", "Surulere",
+        ]
+        for legacy in db.scalars(select(Zone).where(
+            Zone.location_id == location.id,
+            Zone.name.in_(["Sample zone · nearby", "Sample zone · extended"]),
+        )):
+            legacy.active = False
+        existing_zones = {z.name for z in db.scalars(select(Zone).where(Zone.location_id == location.id))}
+        for lga in lgas:
+            if lga not in existing_zones:
+                db.add(Zone(name=lga, fee=200000, location_id=location.id))
         dishes = [
             (
                 "Smoky jollof & chicken",
@@ -62,7 +83,7 @@ def seed():
                 "Sweet ripe plantain, gently fried until golden at the edges.",
                 180000,
                 "sides",
-                "",
+                "/images/plantain.jpg",
                 False,
             ),
             (
@@ -70,7 +91,7 @@ def seed():
                 "Six warm, golden bites. Soft in the middle, made for sharing.",
                 200000,
                 "sides",
-                "",
+                "/images/puff-puff.jpg",
                 False,
             ),
             (
@@ -78,11 +99,33 @@ def seed():
                 "A chilled hibiscus infusion with ginger and pineapple. 350 ml.",
                 150000,
                 "drinks",
-                "",
+                "/images/zobo.jpg",
                 False,
             ),
+            ("Nigerian fried rice & chicken", "Colourful Nigerian fried rice with grilled chicken and sweet fried plantain.", 720000, "rice-classics", "/images/fried-rice.jpg", False),
+            ("Amala, ewedu & gbegiri", "Soft amala with silky ewedu, hearty gbegiri and a slow-cooked beef portion.", 680000, "soups-swallows", "/images/amala.jpg", False),
+            ("Catfish pepper soup", "A warming pepper soup with catfish, aromatic spices and fresh scent leaf.", 750000, "soups-swallows", "/images/pepper-soup.jpg", False),
+            ("Ofada rice & ayamase", "Local Ofada rice with rich green pepper sauce and a boiled egg.", 650000, "nigerian-favourites", "/images/fried-rice.jpg", False),
+            ("Coconut rice & grilled fish", "Fragrant coconut rice with a grilled fish portion and fresh herbs.", 850000, "rice-classics", "/images/jollof.webp", False),
+            ("Beans & ripe plantain", "Slow-cooked honey beans served with ripe golden plantain.", 480000, "nigerian-favourites", "/images/plantain.jpg", False),
+            ("Moi moi", "Steamed bean pudding blended with peppers and warm Nigerian spices.", 250000, "sides", "/images/egusi.webp", False),
+            ("Akara & pap", "Crisp akara bean fritters with a comforting cup of smooth pap.", 350000, "breakfast-brunch", "/images/puff-puff.jpg", False),
+            ("Chicken suya rice bowl", "Yaji-spiced grilled chicken over rice with fresh tomato and onion.", 680000, "nigerian-favourites", "/images/suya.webp", False),
+            ("Chicken alfredo pasta", "Creamy fettuccine with grilled chicken, parmesan and herbs.", 850000, "international-favourites", "/images/chicken-alfredo.jpg", False),
+            ("Óriade beef burger & fries", "A seasoned beef patty with crisp lettuce, tomato and golden fries.", 950000, "international-favourites", "/images/burger.jpg", False),
+            ("Spaghetti bolognese", "Slow-simmered tomato and beef sauce over spaghetti, finished with herbs.", 780000, "international-favourites", "/images/chicken-alfredo.jpg", False),
+            ("Grilled chicken Caesar salad", "Grilled chicken, crisp lettuce, parmesan and creamy Caesar dressing.", 720000, "international-favourites", "/images/burger.jpg", False),
+            ("Pancakes & seasonal fruit", "Fluffy buttermilk pancakes with fresh fruit and a little syrup.", 550000, "breakfast-brunch", "/images/puff-puff.jpg", False),
+            ("Chocolate brownie", "A rich cocoa brownie, baked with a soft centre.", 300000, "international-favourites", "/images/burger.jpg", False),
         ]
+        existing_items = {i.name: i for i in db.scalars(select(MenuItem).where(MenuItem.location_id == location.id))}
         for name, description, price, category, image, featured in dishes:
+            if name in existing_items:
+                item = existing_items[name]
+                # Only repair the known blank demo tiles; don't overwrite operator edits.
+                if not item.image and image:
+                    item.image = image
+                continue
             item = MenuItem(
                 name=name,
                 description=description,
@@ -99,7 +142,7 @@ def seed():
                 db.add(Modifier(item_id=item.id, name="Extra grilled chicken", price=250000))
                 db.add(Modifier(item_id=item.id, name="Extra plantain", price=100000))
         db.commit()
-        print("Sample catalog created. No orders, customers, or performance data were fabricated.")
+        print("Sample catalog updated with missing dishes and Lagos LGAs. Demo prices and delivery fees require restaurant approval; no orders or customers were fabricated.")
 
 
 def admin(email):

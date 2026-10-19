@@ -7,16 +7,19 @@ from sqlalchemy import select, text
 from sqlalchemy.exc import IntegrityError
 from oriade.shared.config import settings
 from oriade.shared.db import db_session, SessionLocal
-from oriade.shared.models import User, Category, Location, Zone, Audit
+from oriade.shared.models import User, Category, Location, Zone, Audit, Order, Review
 from oriade.shared.errors import Problem
 from oriade.shared import schemas as s
 from oriade.shared.security import principal, require, rate_limit
 from oriade.modules.identity import service as identity
 from oriade.modules.catalog import service as catalog
 from oriade.modules.ordering import service as ordering
+from oriade.modules.ordering import payments
 from oriade.modules.customers import service as customers
 from oriade.modules.operations import service as operations
 from oriade.modules.reporting.service import reports
+from oriade.modules.audit.service import record
+from oriade.modules.notifications.orders import send_order_email
 
 app = FastAPI(title="Óriade API", version="0.1.0")
 if settings().sentry_dsn:
@@ -43,6 +46,7 @@ async def integrity_handler(request, exc):
 async def protect(request, call_next):
     if (
         request.method not in {"GET", "HEAD", "OPTIONS"}
+        and request.url.path != "/payments/paystack/webhook"
         and request.headers.get("origin") != settings().app_origin
     ):
         return JSONResponse({"detail": "Request origin is not permitted."}, status_code=403)
@@ -63,6 +67,13 @@ def health(db=Depends(db_session)):
 @app.get("/catalog")
 def get_catalog(db=Depends(db_session)):
     return catalog.catalog(db)
+
+
+@app.get("/reviews")
+def published_reviews(db=Depends(db_session)):
+    rows = db.scalars(select(Review).where(Review.published.is_(True)).order_by(Review.created_at.desc()).limit(6))
+    return [{"customer_name": review.customer_name, "rating": review.rating, "message": review.message}
+            for review in rows]
 
 
 @app.post("/auth/register", status_code=201)
@@ -139,6 +150,25 @@ def get_order(reference: str, request: Request, user=Depends(principal), db=Depe
     return ordering.snapshot(db, order, bool(user and user.role == "kitchen"))
 
 
+@app.post("/orders/{reference}/payment/initialize")
+def initialize_payment(reference: str, data: s.PaymentInitialization, request: Request,
+                       user=Depends(principal), db=Depends(db_session)):
+    order = ordering.authorized_order(db, reference, user, request.headers.get("x-order-token"))
+    return payments.initialize(db, order, data.email)
+
+
+@app.post("/orders/{reference}/payment/verify")
+def verify_payment(reference: str, data: s.PaymentVerification, request: Request,
+                   user=Depends(principal), db=Depends(db_session)):
+    order = ordering.authorized_order(db, reference, user, request.headers.get("x-order-token"))
+    return payments.verify(db, order, data.reference)
+
+
+@app.post("/payments/paystack/webhook")
+async def paystack_webhook(request: Request, db=Depends(db_session)):
+    return payments.webhook(db, await request.body(), request.headers.get("x-paystack-signature", ""))
+
+
 @app.post("/orders/{reference}/handoff")
 def handoff(reference: str, request: Request, user=Depends(principal), db=Depends(db_session)):
     order = ordering.authorized_order(db, reference, user, request.headers.get("x-order-token"))
@@ -153,6 +183,43 @@ def status(
     db=Depends(db_session),
 ):
     return ordering.transition(db, reference, user, data.status, data.version)
+
+
+@app.post("/admin/orders/{reference}/email")
+def resend_order_email(
+    reference: str,
+    user=Depends(require("admin", "operator")),
+    db=Depends(db_session),
+):
+    order = db.scalar(select(Order).where(Order.reference == reference))
+    if not order:
+        raise Problem("Order not found.", 404)
+    send_order_email(order, required=True)
+    record(db, user, "order.email_resent", reference, {})
+    db.commit()
+    return {"sent": True}
+
+
+@app.post("/orders/{reference}/review", status_code=201)
+def add_review(reference: str, data: s.ReviewInput, request: Request, user=Depends(principal), db=Depends(db_session)):
+    order = ordering.authorized_order(db, reference, user, request.headers.get("x-order-token"))
+    if order.status != "COMPLETED":
+        raise Problem("You can review an order after it is completed.", 409)
+    if db.scalar(select(Review).where(Review.order_id == order.id)):
+        raise Problem("This order already has a review.", 409)
+    review = Review(order_id=order.id, user_id=user.id if user else None, customer_name=order.name,
+                    rating=data.rating, message=data.message, published=False)
+    db.add(review)
+    db.commit()
+    return {"id": str(review.id), "published": review.published}
+
+
+@app.get("/orders/{reference}/review")
+def get_order_review(reference: str, request: Request, user=Depends(principal), db=Depends(db_session)):
+    order = ordering.authorized_order(db, reference, user, request.headers.get("x-order-token"))
+    review = db.scalar(select(Review).where(Review.order_id == order.id))
+    return None if not review else {"id": str(review.id), "rating": review.rating, "message": review.message,
+                                    "published": review.published}
 
 
 @app.get("/events")
@@ -268,6 +335,27 @@ def edit_zone(
 @app.get("/admin/reports")
 def get_reports(user=Depends(require("admin", "operator")), db=Depends(db_session)):
     return reports(db)
+
+
+@app.get("/admin/reviews")
+def get_reviews(user=Depends(require("admin", "operator")), db=Depends(db_session)):
+    rows = db.execute(select(Review, Order.reference).join(Order, Review.order_id == Order.id)
+                      .order_by(Review.created_at.desc()).limit(200)).all()
+    return [{"id": str(review.id), "reference": reference, "customer_name": review.customer_name,
+             "rating": review.rating, "message": review.message, "published": review.published,
+             "created_at": review.created_at.isoformat()} for review, reference in rows]
+
+
+@app.patch("/admin/reviews/{review_id}")
+def set_review_visibility(review_id: UUID, data: s.ReviewVisibility,
+                          user=Depends(require("admin", "operator")), db=Depends(db_session)):
+    review = db.get(Review, review_id)
+    if not review:
+        raise Problem("Review not found.", 404)
+    review.published = data.published
+    record(db, user, "review.visibility", str(review.id), {"published": data.published})
+    db.commit()
+    return {"id": str(review.id), "published": review.published}
 
 
 @app.get("/admin/users")

@@ -114,7 +114,7 @@ def test_staff_lifecycle_privacy_and_optimistic_lock(client):
         == 200
     )
     assert client.get("/admin/reports").json()["counts"]["COMPLETED"] == 1
-    assert client.get("/admin/reports").json()["collected_revenue"] is None
+    assert client.get("/admin/reports").json()["collected_revenue"] == 0
 
 
 def test_stock_duplicate_modifiers_and_untrusted_prices(client):
