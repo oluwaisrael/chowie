@@ -1,5 +1,6 @@
 import type {Metadata} from 'next';
 import './globals.css';
+import './brand.css';
 import {Providers} from '@/components/providers';
 import {Header,Footer} from '@/components/shell';
 export const metadata:Metadata={title:{default:'Óriade — The Nigerian Table',template:'%s | Óriade'},description:'Nigerian flavours, thoughtfully made. Explore the Óriade menu and order for delivery or pickup with a personal WhatsApp confirmation.'};

@@ -1,13 +1,83 @@
-import {serverCatalog} from '@/lib/server';
-import Link from 'next/link';
-import {ArrowRight,ArrowUpRight} from 'lucide-react';
-import {Featured,PublishedReviews} from '@/features/menu';
-export default async function Home(){const catalog=await serverCatalog();return <>
-<section className="hero"><div className="hero-copy"><span className="eyebrow"><i/> ROOTED IN NIGERIA. MADE WITH LOVE.</span><h1>A taste of home.<br/>A little more<br/><em>extraordinary.</em></h1><p>Big-hearted Nigerian flavours, familiar favourites, and the kind of food that brings us together.</p><Link href="/menu" className="button">Find your favourite <ArrowUpRight size={19}/></Link><div className="hero-note"><span>01 /</span> GOOD FOOD IS ALWAYS A GOOD IDEA.</div></div><div className="hero-visual"><img src="/images/jollof.webp" alt="Nigerian jollof rice with grilled chicken and caramelized plantain" width="1200" height="1100" fetchPriority="high"/><div className="hero-caption"><span>THE COMFORT CLASSICS</span><strong>Smoky. Golden. Unmistakably ours.</strong><Link href="/menu" aria-label="Discover our dishes"><ArrowUpRight/></Link></div><div className="round-stamp">FROM OUR<br/><b>KITCHEN</b><br/>TO YOUR TABLE</div></div></section>
-<div className="marquee"><span>FAMILIAR FLAVOURS</span><i>✳</i><span>THOUGHTFULLY MADE</span><i>✳</i><span>GENEROUSLY SERVED</span><i>✳</i><span>ALWAYS ÓRIADE</span></div>
-<section className="section"><div className="section-heading"><div><span className="eyebrow">THE ONES YOU COME BACK FOR</span><h2>Your next favourite<br/>is on the menu.</h2></div><Link className="text-link" href="/menu">Explore the full menu <ArrowRight size={18}/></Link></div><Featured initialData={catalog}/></section>
-<PublishedReviews/>
-<section className="story" id="story"><div className="story-art"><span className="eyebrow">OUR ROOTS. YOUR TABLE.</span><div className="story-type">Food is<br/>our love<br/><em>language.</em></div><span className="story-small">THE ÓRIADE WAY</span></div><div className="story-copy"><span className="eyebrow">MORE THAN A MEAL</span><h2>Some things just<br/>taste like home.</h2><p>The first spoonful of smoky jollof. Plantain, golden at the edges. A generous bowl of soup that asks you to slow down.</p><p>Óriade is our invitation to enjoy the Nigerian food you love, with a little more care in every detail. Familiar flavours. A warm welcome. Room for everyone.</p><Link href="/menu" className="text-link">Come to the table <ArrowRight size={18}/></Link></div></section>
-<section className="section" id="visit"><div className="section-heading"><div><span className="eyebrow">FROM OUR KITCHEN, WITHOUT THE FUSS</span><h2>Good food. Three simple steps.</h2></div></div><div className="steps"><article><span>01</span><h3>Follow your appetite.</h3><p>Browse the menu, choose your favourites, and make them your own with a little extra.</p></article><article><span>02</span><h3>Make it your order.</h3><p>Choose pickup or a delivery zone. Review your meals and the full price before you submit.</p></article><article><span>03</span><h3>Say hello on WhatsApp.</h3><p>Send your saved order to our team. We’ll confirm availability and arrange the next steps with you.</p></article></div><div className="delivery-note"><div><h3>Your table or ours?</h3><p>Delivery fees and pickup details are shown at checkout. Every order is personally confirmed by our team.</p></div><a href="https://wa.me/2348066514361" className="text-link" target="_blank" rel="noreferrer">Talk to the kitchen <ArrowUpRight size={18}/></a></div></section>
-<section className="final-cta"><span className="eyebrow">THERE’S SOMETHING GOOD WAITING.</span><h2>What are you<br/><em>in the mood for?</em></h2><Link href="/menu" className="button button-cream">Let’s find out <ArrowUpRight size={18}/></Link></section>
-</>}
+import { ArrowRight, ArrowUpRight } from "lucide-react";
+import Link from "next/link";
+import { Featured, PublishedReviews } from "@/features/menu";
+import { serverCatalog } from "@/lib/server";
+
+export default async function Home() {
+  const catalog = await serverCatalog();
+
+  return (
+    <>
+      <section className="hero">
+        <div className="hero-copy">
+          <span className="eyebrow">ÓRIADE · NIGERIAN KITCHEN · LAGOS</span>
+          <h1>Nigerian food,<br />made fresh.</h1>
+          <p>Jollof, soups, grills and more. Order for delivery or pickup.</p>
+          <Link href="/menu" className="button">
+            Browse the menu <ArrowRight size={18} />
+          </Link>
+          <div className="hero-note">Prepared in Lagos. Confirmed by our team.</div>
+        </div>
+        <div className="hero-menu-panel" aria-label="A few dishes from our menu">
+          <span className="eyebrow">ON THE MENU</span>
+          <ul>
+            <li>Jollof rice & chicken</li>
+            <li>Egusi & pounded yam</li>
+            <li>Suya, plantain & more</li>
+          </ul>
+          <Link href="/menu" className="text-link">
+            See all dishes <ArrowUpRight size={16} />
+          </Link>
+        </div>
+      </section>
+
+      <section className="section">
+        <div className="section-heading">
+          <div>
+            <span className="eyebrow">THE MENU</span>
+            <h2>Good food for the table.</h2>
+          </div>
+          <Link className="text-link" href="/menu">
+            Browse all dishes <ArrowRight size={18} />
+          </Link>
+        </div>
+        <Featured initialData={catalog} />
+      </section>
+
+      <PublishedReviews />
+
+      <section className="story" id="story">
+        <div className="story-intro">
+          <span className="eyebrow">ABOUT ÓRIADE</span>
+          <h2>Food is better shared.</h2>
+          <p>We make Nigerian favourites and familiar international dishes for everyday meals and get-togethers.</p>
+          <p>Choose what you like, tell us where it’s going, and our team will confirm the order with you.</p>
+          <Link href="/menu" className="text-link">
+            Choose your meal <ArrowRight size={18} />
+          </Link>
+        </div>
+        <div className="story-details">
+          <div><strong>01</strong><span>Choose your dishes</span></div>
+          <div><strong>02</strong><span>Select delivery or pickup</span></div>
+          <div><strong>03</strong><span>Track your order</span></div>
+        </div>
+      </section>
+
+      <section className="section delivery-summary" id="visit">
+        <span className="eyebrow">DELIVERY & PICKUP</span>
+        <h2>Choose what works for you.</h2>
+        <p>Choose a Lagos delivery area or pickup at checkout. Our team will confirm availability and the final delivery fee.</p>
+      </section>
+
+      <section className="final-cta">
+        <div>
+          <span className="eyebrow">READY TO ORDER?</span>
+          <h2>See what’s cooking.</h2>
+        </div>
+        <Link href="/menu" className="button button-cream">
+          View the menu <ArrowUpRight size={18} />
+        </Link>
+      </section>
+    </>
+  );
+}

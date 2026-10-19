@@ -59,7 +59,7 @@ def seed():
                 "Long-grain jollof, flame-grilled chicken and golden, caramelized plantain.",
                 650000,
                 "rice-classics",
-                "/images/jollof.webp",
+                "",
                 True,
             ),
             (
@@ -67,7 +67,7 @@ def seed():
                 "A rich melon-seed soup with leafy greens and tender beef, served with soft pounded yam.",
                 700000,
                 "soups-swallows",
-                "/images/egusi.webp",
+                "",
                 True,
             ),
             (
@@ -75,7 +75,7 @@ def seed():
                 "Flame-kissed beef, warm yaji spice, fresh tomatoes and crisp red onion. Contains peanuts.",
                 550000,
                 "sides",
-                "/images/suya.webp",
+                "",
                 True,
             ),
             (
@@ -83,7 +83,7 @@ def seed():
                 "Sweet ripe plantain, gently fried until golden at the edges.",
                 180000,
                 "sides",
-                "/images/plantain.jpg",
+                "",
                 False,
             ),
             (
@@ -91,7 +91,7 @@ def seed():
                 "Six warm, golden bites. Soft in the middle, made for sharing.",
                 200000,
                 "sides",
-                "/images/puff-puff.jpg",
+                "",
                 False,
             ),
             (
@@ -99,32 +99,38 @@ def seed():
                 "A chilled hibiscus infusion with ginger and pineapple. 350 ml.",
                 150000,
                 "drinks",
-                "/images/zobo.jpg",
+                "",
                 False,
             ),
-            ("Nigerian fried rice & chicken", "Colourful Nigerian fried rice with grilled chicken and sweet fried plantain.", 720000, "rice-classics", "/images/fried-rice.jpg", False),
-            ("Amala, ewedu & gbegiri", "Soft amala with silky ewedu, hearty gbegiri and a slow-cooked beef portion.", 680000, "soups-swallows", "/images/amala.jpg", False),
-            ("Catfish pepper soup", "A warming pepper soup with catfish, aromatic spices and fresh scent leaf.", 750000, "soups-swallows", "/images/pepper-soup.jpg", False),
-            ("Ofada rice & ayamase", "Local Ofada rice with rich green pepper sauce and a boiled egg.", 650000, "nigerian-favourites", "/images/fried-rice.jpg", False),
-            ("Coconut rice & grilled fish", "Fragrant coconut rice with a grilled fish portion and fresh herbs.", 850000, "rice-classics", "/images/jollof.webp", False),
-            ("Beans & ripe plantain", "Slow-cooked honey beans served with ripe golden plantain.", 480000, "nigerian-favourites", "/images/plantain.jpg", False),
-            ("Moi moi", "Steamed bean pudding blended with peppers and warm Nigerian spices.", 250000, "sides", "/images/egusi.webp", False),
-            ("Akara & pap", "Crisp akara bean fritters with a comforting cup of smooth pap.", 350000, "breakfast-brunch", "/images/puff-puff.jpg", False),
-            ("Chicken suya rice bowl", "Yaji-spiced grilled chicken over rice with fresh tomato and onion.", 680000, "nigerian-favourites", "/images/suya.webp", False),
-            ("Chicken alfredo pasta", "Creamy fettuccine with grilled chicken, parmesan and herbs.", 850000, "international-favourites", "/images/chicken-alfredo.jpg", False),
-            ("Óriade beef burger & fries", "A seasoned beef patty with crisp lettuce, tomato and golden fries.", 950000, "international-favourites", "/images/burger.jpg", False),
-            ("Spaghetti bolognese", "Slow-simmered tomato and beef sauce over spaghetti, finished with herbs.", 780000, "international-favourites", "/images/chicken-alfredo.jpg", False),
-            ("Grilled chicken Caesar salad", "Grilled chicken, crisp lettuce, parmesan and creamy Caesar dressing.", 720000, "international-favourites", "/images/burger.jpg", False),
-            ("Pancakes & seasonal fruit", "Fluffy buttermilk pancakes with fresh fruit and a little syrup.", 550000, "breakfast-brunch", "/images/puff-puff.jpg", False),
-            ("Chocolate brownie", "A rich cocoa brownie, baked with a soft centre.", 300000, "international-favourites", "/images/burger.jpg", False),
+            ("Nigerian fried rice & chicken", "Colourful Nigerian fried rice with grilled chicken and sweet fried plantain.", 720000, "rice-classics", "", False),
+            ("Amala, ewedu & gbegiri", "Soft amala with silky ewedu, hearty gbegiri and a slow-cooked beef portion.", 680000, "soups-swallows", "", False),
+            ("Catfish pepper soup", "A warming pepper soup with catfish, aromatic spices and fresh scent leaf.", 750000, "soups-swallows", "", False),
+            ("Ofada rice & ayamase", "Local Ofada rice with rich green pepper sauce and a boiled egg.", 650000, "nigerian-favourites", "", False),
+            ("Coconut rice & grilled fish", "Fragrant coconut rice with a grilled fish portion and fresh herbs.", 850000, "rice-classics", "", False),
+            ("Beans & ripe plantain", "Slow-cooked honey beans served with ripe golden plantain.", 480000, "nigerian-favourites", "", False),
+            ("Moi moi", "Steamed bean pudding blended with peppers and warm Nigerian spices.", 250000, "sides", "", False),
+            ("Akara & pap", "Crisp akara bean fritters with a comforting cup of smooth pap.", 350000, "breakfast-brunch", "", False),
+            ("Chicken suya rice bowl", "Yaji-spiced grilled chicken over rice with fresh tomato and onion.", 680000, "nigerian-favourites", "", False),
+            ("Chicken alfredo pasta", "Creamy fettuccine with grilled chicken, parmesan and herbs.", 850000, "international-favourites", "", False),
+            ("Óriade beef burger & fries", "A seasoned beef patty with crisp lettuce, tomato and golden fries.", 950000, "international-favourites", "", False),
+            ("Spaghetti bolognese", "Slow-simmered tomato and beef sauce over spaghetti, finished with herbs.", 780000, "international-favourites", "", False),
+            ("Grilled chicken Caesar salad", "Grilled chicken, crisp lettuce, parmesan and creamy Caesar dressing.", 720000, "international-favourites", "", False),
+            ("Pancakes & seasonal fruit", "Fluffy buttermilk pancakes with fresh fruit and a little syrup.", 550000, "breakfast-brunch", "", False),
+            ("Chocolate brownie", "A rich cocoa brownie, baked with a soft centre.", 300000, "international-favourites", "", False),
         ]
         existing_items = {i.name: i for i in db.scalars(select(MenuItem).where(MenuItem.location_id == location.id))}
+        generated_demo_images = {
+            "/images/jollof.webp", "/images/egusi.webp", "/images/suya.webp",
+            "/images/plantain.jpg", "/images/puff-puff.jpg", "/images/zobo.jpg",
+            "/images/fried-rice.jpg", "/images/amala.jpg", "/images/pepper-soup.jpg",
+            "/images/chicken-alfredo.jpg", "/images/burger.jpg",
+        }
         for name, description, price, category, image, featured in dishes:
             if name in existing_items:
                 item = existing_items[name]
-                # Only repair the known blank demo tiles; don't overwrite operator edits.
-                if not item.image and image:
-                    item.image = image
+                # Remove only the known synthetic sample assets; preserve uploaded photos.
+                if item.image in generated_demo_images:
+                    item.image = ""
                 continue
             item = MenuItem(
                 name=name,

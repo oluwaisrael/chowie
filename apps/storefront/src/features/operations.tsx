@@ -797,14 +797,15 @@ export function MenuWorkspace() {
                 />
               </label>
               <label>
-                Image URL
+                Restaurant photo path
                 <input
-                  placeholder="https://… or /images/…"
+                  placeholder="/images/jollof.jpg"
                   {...form.register("image")}
                 />
+                <span className="small muted">Add your photo to storefront/public/images, then enter its path here.</span>
               </label>
               <label>
-                Upload food photograph
+                Upload restaurant photo (storage must be configured)
                 <input
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
